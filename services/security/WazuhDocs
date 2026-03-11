@@ -1,0 +1,179 @@
+Wazuh Server + Windows Agent Installation - Kyle Wilson 3/22/25
+
+Lab setup: Ubuntu 22.04 VM on Proxmox
+
+
+Wazuh Server
+1. Create Ubuntu Server VM
+2. Configure static network
+3. Install Ubuntu normally
+4. Enable SSH (optional)
+5. Update system
+6. Download Wazuh installer
+7. Make installer executable
+8. Run Wazuh installation script
+9. Access Wazuh dashboard
+
+Windows Agent
+1. Add agent in Wazuh dashboard
+2. Download and install Windows agent
+3. Start agent service
+4. Verify agent connects to server
+
+
+------------------------------------------------------------
+
+WAZUH SERVER VM SPECIFICATIONS
+
+OS:
+	Ubuntu Server 22.04
+
+Storage:
+	100 GB
+
+RAM:
+	8 GB
+
+CPU:
+	2 vCPUs
+
+Network:
+	vmbrX (Private VLAN)
+
+Static IP:
+	192.168.X.X
+
+Subnet:
+	192.168.X.0/24
+
+Gateway:
+	192.168.X.X
+
+
+------------------------------------------------------------
+
+INSTALL UBUNTU SERVER
+
+Install Ubuntu normally.
+
+When prompted for network configuration set:
+
+	IP Address: 192.168.X.X
+	Subnet: 255.255.255.0 (/24)
+	Gateway: 192.168.X.X
+
+Enable OpenSSH during installation if remote access is needed.
+
+
+------------------------------------------------------------
+
+UPDATE SYSTEM
+
+	sudo apt update
+	sudo apt upgrade -y
+
+
+------------------------------------------------------------
+
+DOWNLOAD WAZUH INSTALLER
+
+	curl -sO https://packages.wazuh.com/4.14/wazuh-install.sh
+
+
+------------------------------------------------------------
+
+MAKE SCRIPT EXECUTABLE
+
+	chmod +x wazuh-install.sh
+
+
+------------------------------------------------------------
+
+RUN WAZUH INSTALLATION
+
+	sudo bash wazuh-install.sh -a
+
+This installs:
+
+	Wazuh Manager
+	Elasticsearch
+	Kibana
+	Filebeat
+
+At the end of installation the script will display:
+
+	Web dashboard URL
+	Default login credentials
+
+
+------------------------------------------------------------
+
+ACCESS WAZUH DASHBOARD
+
+Open browser and navigate to:
+
+	https://192.168.X.X:5601
+
+Login using credentials provided at the end of the installation.
+
+
+------------------------------------------------------------
+
+WINDOWS AGENT INSTALLATION
+
+In the Wazuh dashboard navigate to:
+
+	Wazuh → Agents → Add agent
+
+Select:
+
+	Windows
+
+Assign a name for the agent.
+
+Example:
+	machine
+
+Use server IP:
+
+	192.168.X.X
+
+
+------------------------------------------------------------
+
+INSTALL WINDOWS AGENT
+
+Copy and run the PowerShell command provided by the dashboard.
+
+Example:
+
+	Invoke-WebRequest -Uri https://packages.wazuh.com/4.x/windows/wazuh-agent-4.7.5-1.msi -OutFile ${env.tmp}\wazuh-agent
+
+	msiexec.exe /i ${env.tmp}\wazuh-agent /q WAZUH_MANAGER='192.168.X.X' WAZUH_AGENT_NAME='machine' WAZUH_REGISTRATION_SERVER='192.168.X.X'
+
+
+------------------------------------------------------------
+
+START WAZUH AGENT SERVICE
+
+	NET START WazuhSvc
+
+
+------------------------------------------------------------
+
+VERIFY AGENT CONNECTION
+
+Return to the Wazuh dashboard.
+
+Navigate to:
+
+	Wazuh → Agents
+
+Your Windows machine should appear as connected.
+
+You can now monitor:
+
+	Logs
+	Security alerts
+	System activity
+	File integrity
