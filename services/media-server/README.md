@@ -13,7 +13,7 @@ Automated media server built using Docker containers to manage, download, and st
 
 ---
 
-## ⚠ Legal Notice
+## Legal Notice
 
 This lab environment is intended for **educational and personal media management purposes only**.
 
