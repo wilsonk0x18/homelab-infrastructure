@@ -7,6 +7,11 @@ Controller
 4. Export kubeconfig
 5. Verify node is Ready
 
+Workers
+1. Update system
+2. Install/join K3s agent with K3S_URL and K3S_TOKEN
+3. Verify from controller with kubectl get nodes
+
 KUBERNETES ON CONTROLLER
 	
 Always:
