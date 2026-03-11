@@ -1,0 +1,286 @@
+Proxmox Backup Server Setup - Kyle Wilson
+
+
+Lab Setup: Proxmox Backup Server 3.3.0
+
+
+Proxmox Backup Server
+1. Install Proxmox Backup Server
+2. Configure network and hostname
+3. Access the web interface
+4. Configure no-subscription repository
+5. Prepare backup disks
+6. Create ZFS pool
+7. Create datastore
+8. Create backup user
+9. Assign datastore permissions
+
+
+Proxmox VE Integration
+1. Connect Proxmox VE node to PBS
+2. Configure backup storage
+3. Create backup job
+4. Perform manual backup test
+
+
+------------------------------------------------------------
+
+INSTALL PROXMOX BACKUP SERVER
+
+Create bootable USB with:
+
+	Proxmox Backup Server 3.3.0 ISO
+
+Boot the server from the USB drive.
+
+Follow installer prompts.
+
+Configure the following during installation:
+
+	Hostname:
+		pbs.local
+
+	IP Address:
+		192.168.X.X/24
+
+	Gateway:
+		192.168.X.0
+
+
+------------------------------------------------------------
+
+ACCESS PBS WEB INTERFACE
+
+After installation completes open a browser.
+
+Navigate to:
+
+	https://192.168.X.X:8007
+
+
+------------------------------------------------------------
+
+CONFIGURE NO-SUBSCRIPTION REPOSITORY
+
+Open shell in PBS.
+
+Edit enterprise repository list:
+
+	sudo nano /etc/apt/sources.list.d/pbs-enterprise.list
+
+Comment out the enterprise repository line by adding:
+
+	#
+
+Add the no-subscription repository:
+
+	sudo nano /etc/apt/sources.list
+
+Add this line:
+
+	deb http://download.proxmox.com/debian/pbs bookworm pbs-no-subscription
+
+
+Update the system:
+
+	sudo apt update
+	sudo apt full-upgrade
+
+
+------------------------------------------------------------
+
+CHECK AVAILABLE DISKS
+
+List disks:
+
+	lsblk
+
+
+------------------------------------------------------------
+
+WIPE DISKS
+
+Replace sdX with actual device names.
+
+	wipefs -a /dev/sdX
+
+
+------------------------------------------------------------
+
+CREATE ZFS BACKUP POOL
+
+Example:
+
+	zpool create backups /dev/sdX /dev/sdY
+
+
+------------------------------------------------------------
+
+CREATE DATASTORE
+
+Open PBS web interface.
+
+Navigate to:
+
+	Datastore → Add
+
+Configure:
+
+	Name:
+		vm-backups
+
+	Directory:
+		/backups
+
+Click:
+
+	Create
+
+
+------------------------------------------------------------
+
+CREATE BACKUP USER
+
+Navigate to:
+
+	Access Control → Users → Add
+
+Configure:
+
+	User:
+		pve
+
+	Realm:
+		pbs
+
+Set password for the user.
+
+
+------------------------------------------------------------
+
+ASSIGN DATASTORE PERMISSIONS
+
+Navigate to:
+
+	Access Control → Permissions → Add
+
+Configure:
+
+	Path:
+		/datastore/vm-backups
+
+	User:
+		pve@pbs
+
+	Role:
+		DatastoreBackup
+
+
+------------------------------------------------------------
+
+CONNECT PROXMOX VE SERVER
+
+On the Proxmox VE host.
+
+Navigate to:
+
+	Datacenter → Storage → Add → Proxmox Backup Server
+
+Fill in:
+
+	ID:
+		pbs-backup
+
+	Server:
+		192.168.X.X
+
+	Username:
+		pve@pbs
+
+	Password or Token:
+		<password created earlier>
+
+	Fingerprint:
+		Get from PBS server using:
+
+
+	openssl x509 -noout -fingerprint -sha256 -inform pem -in /etc/proxmox-backup/proxy.pem
+
+
+	Datastore:
+		vm-backups
+
+	Namespace:
+		leave blank
+
+Click:
+
+	Add
+
+
+------------------------------------------------------------
+
+CREATE BACKUP JOB
+
+Navigate to:
+
+	Datacenter → Backup → Add
+
+Configure:
+
+	Node:
+		R720
+
+	Store:
+		pbs-backup
+
+	Schedule:
+		daily or Sun 03:00
+
+	Selection Mode:
+		manual VM selection or group
+
+	Compression:
+		LZO or ZSTD
+
+	Mode:
+		Snapshot
+
+Click:
+
+	Create
+
+
+------------------------------------------------------------
+
+RUN MANUAL BACKUP TEST
+
+Navigate to a VM.
+
+Open:
+
+	Backup tab
+
+Click:
+
+	Backup Now
+
+Select:
+
+	PBS storage
+
+Start the backup and watch task logs for progress.
+
+
+------------------------------------------------------------
+
+VERIFY BACKUPS
+
+Backups will appear in the datastore:
+
+	vm-backups
+
+You can restore or verify them from the PBS interface.
+
+
+Done — Proxmox VE is now backing up VMs to Proxmox Backup Server.
