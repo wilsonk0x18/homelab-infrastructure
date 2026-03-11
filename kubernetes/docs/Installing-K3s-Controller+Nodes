@@ -1,0 +1,47 @@
+Lab setup: Single-server K3s cluster on Ubuntu 24.04 - Kyle Wilson 3/8/26
+
+Controller
+1. Update system
+2. Install curl/git
+3. Install K3s server
+4. Export kubeconfig
+5. Verify node is Ready
+
+KUBERNETES ON CONTROLLER
+	
+Always:
+sudo apt update
+	sudo apt upgrade -y
+
+Install basic tools:
+	sudo apt install curl git -y
+
+Curl and run install script for K3S which will install  Kubernetes API server, scheduler, controller manager, container runtime, kubectl:
+	curl -sfL https://get.k3s.io | sh -
+
+Verify the install by using:
+	sudo kubectl get nodes
+
+obtain the worker join token used for worker join authentication:
+	sudo cat /var/lib/rancher/k3s/server/node-token
+
+Example output = K1075abcdef::server:123456789
+
+
+INDIVIDUAL NODES
+
+	sudo apt update
+	sudo apt upgrade -y
+
+NOTE: curl should be installed but if not "sudo apt install curl -y"
+
+Join the nodes to the controller
+	curl -sfL https://get.k3s.io | \
+	K3S_URL=https://192.168.X.X:6443 \
+	K3S_TOKEN=K1075abcdef::server:123456789 \
+	sh -
+
+Once nodes are joinded confirm on the controller with:
+	sudo kubectl get nodes
+	
+Happy Kubernetesing!
