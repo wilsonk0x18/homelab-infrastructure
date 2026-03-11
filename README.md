@@ -40,15 +40,13 @@ The lab is designed like a small enterprise-style environment, with isolated net
   <img src="assets/homelab-rack.jpg" alt="Physical Homelab" width="800"/>
 </p>
 
-<p align="center"><i>Place your physical lab photo at <code>assets/homelab-rack.jpg</code></i></p>
 
 ### Network Diagram
 
 <p align="center">
-  <img src="assets/network-diagram.png" alt="Network Diagram" width="1000"/>
+  <img src="assets/homelab-docs.png" alt="Network Diagram" width="1000"/>
 </p>
 
-<p align="center"><i>Place your network diagram at <code>assets/network-diagram.png</code></i></p>
 
 ---
 
