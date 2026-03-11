@@ -117,7 +117,7 @@ Jellyfin Streaming Server<br>
 
 ## Setup Documentation
 
-➡ **[Jellyfin Media Stack Setup](jellyfin-stack.md)**
+➡ **[Jellyfin Media Stack Setup](MediaServerAutomationDocs)**
 
 The guide includes:
 
