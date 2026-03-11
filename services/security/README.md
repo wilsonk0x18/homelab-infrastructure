@@ -103,13 +103,13 @@ The platform collects logs and security telemetry from monitored hosts and provi
 - system integrity monitoring
 - endpoint telemetry
 
-Agents installed on Windows systems send security data to the Wazuh server for analysis. :contentReference[oaicite:2]{index=2}
+Agents installed on Windows systems send security data to the Wazuh server for analysis.
 
 ---
 
 ## Setup Documentation
 
-➡ **[Wazuh Installation Guide](wazuh-install.md)**
+➡ **[Wazuh Installation Guide](WazuhDocs)**
 
 This guide includes:
 
