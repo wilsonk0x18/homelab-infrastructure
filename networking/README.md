@@ -67,7 +67,7 @@ This design allows for safer experimentation with infrastructure and security to
 ## Diagram Reference
 
 <p align="center">
-  <img src="../architecture/network-diagram-public.png" alt="Network Diagram" width="950"/>
+  <img src="../assets/homelab-docs.png" alt="Network Diagram" width="950"/>
 </p>
 
 <p align="center">
