@@ -68,7 +68,7 @@ Client machines can join the domain and authenticate using domain credentials.
 
 ## Setup Documentation
 
-➡ **[Windows Domain Controller Setup](windows-ad.md)**
+➡ **[Windows Domain Controller Setup](ActiveDirectoryDomainSetupDocs)**
 
 The full guide includes:
 
