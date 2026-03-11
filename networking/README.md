@@ -49,16 +49,8 @@ This design allows for safer experimentation with infrastructure and security to
     <td>Why the firewall sits where it does and what it protects</td>
   </tr>
   <tr>
-    <td><a href="./switching.md">switching.md</a></td>
-    <td>Managed switching, trunking, and access-port design</td>
-  </tr>
-  <tr>
     <td><a href="./proxmox-networking.md">proxmox-networking.md</a></td>
     <td>How Proxmox bridges connect virtual machines to segmented networks</td>
-  </tr>
-  <tr>
-    <td><a href="./segmentation-philosophy.md">segmentation-philosophy.md</a></td>
-    <td>Security reasoning behind the segmented design</td>
   </tr>
 </table>
 
