@@ -1,0 +1,231 @@
+Juniper EX2200 VLAN Configuration (3 VLAN Lab) - Kyle Wilson
+
+Lab Setup: Juniper EX2200 + Netgate SG1100 Router
+
+
+Switch Configuration Overview
+1. Connect to switch console
+2. Log into JunOS CLI
+3. Enter configuration mode
+4. Create VLANs
+5. Configure trunk port to Netgate router
+6. Configure access ports for each VLAN
+7. Commit configuration
+8. Verify VLAN configuration
+9. Save and reload switch
+
+
+VLAN Layout
+
+VLAN Name		VLAN ID		Ports
+private			10		12–17
+public			20		18–23
+guest			30		24–29
+
+Trunk Port
+
+Port 1 → Netgate SG1100
+Carries VLANs 10, 20, 30
+
+
+------------------------------------------------------------
+
+CONNECT TO SWITCH CONSOLE
+
+Plug console cable into the EX2200.
+
+Connect the other end to your computer.
+
+Open PuTTY.
+
+Connection type:
+	Serial
+
+Typical settings:
+
+	COM Port: COMX
+	Speed: 9600
+	Data bits: 8
+	Stop bits: 1
+	Parity: None
+	Flow control: None
+
+Click:
+
+	Open
+
+
+------------------------------------------------------------
+
+LOGIN TO JUNOS
+
+Login with default credentials if reset:
+
+	login: root
+	password: (blank)
+
+If password is required use the configured admin password.
+
+
+------------------------------------------------------------
+
+ENTER CLI MODE
+
+Start the JunOS command line interface.
+
+	cli
+
+
+------------------------------------------------------------
+
+ENTER CONFIGURATION MODE
+
+	configure
+
+
+------------------------------------------------------------
+
+CREATE VLANS
+
+Create three VLANs.
+
+	set vlans private vlan-id 10
+	set vlans public vlan-id 20
+	set vlans guest vlan-id 30
+
+
+------------------------------------------------------------
+
+CONFIGURE TRUNK PORT (PORT 1 → NETGATE SG1100)
+
+Enable trunk mode and allow all VLANs.
+
+	set interfaces ge-0/0/1 unit 0 family ethernet-switching port-mode trunk
+
+	set interfaces ge-0/0/1 unit 0 family ethernet-switching vlan members private
+	set interfaces ge-0/0/1 unit 0 family ethernet-switching vlan members public
+	set interfaces ge-0/0/1 unit 0 family ethernet-switching vlan members guest
+
+
+------------------------------------------------------------
+
+CONFIGURE PRIVATE VLAN PORTS
+
+Ports 12–17 assigned to VLAN 10.
+
+	set interfaces ge-0/0/12 unit 0 family ethernet-switching port-mode access
+	set interfaces ge-0/0/12 unit 0 family ethernet-switching vlan members private
+
+	set interfaces ge-0/0/13 unit 0 family ethernet-switching port-mode access
+	set interfaces ge-0/0/13 unit 0 family ethernet-switching vlan members private
+
+	set interfaces ge-0/0/14 unit 0 family ethernet-switching port-mode access
+	set interfaces ge-0/0/14 unit 0 family ethernet-switching vlan members private
+
+	set interfaces ge-0/0/15 unit 0 family ethernet-switching port-mode access
+	set interfaces ge-0/0/15 unit 0 family ethernet-switching vlan members private
+
+	set interfaces ge-0/0/16 unit 0 family ethernet-switching port-mode access
+	set interfaces ge-0/0/16 unit 0 family ethernet-switching vlan members private
+
+	set interfaces ge-0/0/17 unit 0 family ethernet-switching port-mode access
+	set interfaces ge-0/0/17 unit 0 family ethernet-switching vlan members private
+
+
+------------------------------------------------------------
+
+CONFIGURE PUBLIC VLAN PORTS
+
+Ports 18–23 assigned to VLAN 20.
+
+	set interfaces ge-0/0/18 unit 0 family ethernet-switching port-mode access
+	set interfaces ge-0/0/18 unit 0 family ethernet-switching vlan members public
+
+	set interfaces ge-0/0/19 unit 0 family ethernet-switching port-mode access
+	set interfaces ge-0/0/19 unit 0 family ethernet-switching vlan members public
+
+	set interfaces ge-0/0/20 unit 0 family ethernet-switching port-mode access
+	set interfaces ge-0/0/20 unit 0 family ethernet-switching vlan members public
+
+	set interfaces ge-0/0/21 unit 0 family ethernet-switching port-mode access
+	set interfaces ge-0/0/21 unit 0 family ethernet-switching vlan members public
+
+	set interfaces ge-0/0/22 unit 0 family ethernet-switching port-mode access
+	set interfaces ge-0/0/22 unit 0 family ethernet-switching vlan members public
+
+	set interfaces ge-0/0/23 unit 0 family ethernet-switching port-mode access
+	set interfaces ge-0/0/23 unit 0 family ethernet-switching vlan members public
+
+
+------------------------------------------------------------
+
+CONFIGURE GUEST VLAN PORTS
+
+Ports 24–29 assigned to VLAN 30.
+
+	set interfaces ge-0/0/24 unit 0 family ethernet-switching port-mode access
+	set interfaces ge-0/0/24 unit 0 family ethernet-switching vlan members guest
+
+	set interfaces ge-0/0/25 unit 0 family ethernet-switching port-mode access
+	set interfaces ge-0/0/25 unit 0 family ethernet-switching vlan members guest
+
+	set interfaces ge-0/0/26 unit 0 family ethernet-switching port-mode access
+	set interfaces ge-0/0/26 unit 0 family ethernet-switching vlan members guest
+
+	set interfaces ge-0/0/27 unit 0 family ethernet-switching port-mode access
+	set interfaces ge-0/0/27 unit 0 family ethernet-switching vlan members guest
+
+	set interfaces ge-0/0/28 unit 0 family ethernet-switching port-mode access
+	set interfaces ge-0/0/28 unit 0 family ethernet-switching vlan members guest
+
+	set interfaces ge-0/0/29 unit 0 family ethernet-switching port-mode access
+	set interfaces ge-0/0/29 unit 0 family ethernet-switching vlan members guest
+
+
+------------------------------------------------------------
+
+REVIEW CONFIGURATION
+
+	show | compare
+
+
+------------------------------------------------------------
+
+COMMIT CONFIGURATION
+
+	commit
+
+
+------------------------------------------------------------
+
+VERIFY VLAN CONFIGURATION
+
+Check VLANs.
+
+	show vlans
+
+Check interfaces.
+
+	show ethernet-switching interfaces
+
+
+------------------------------------------------------------
+
+RELOAD SWITCH
+
+	request system reboot
+
+Confirm reboot when prompted.
+
+
+------------------------------------------------------------
+
+DONE
+
+The EX2200 switch is now configured with:
+
+	VLAN 10 → Private (ports 12–17)
+	VLAN 20 → Public (ports 18–23)
+	VLAN 30 → Guest (ports 24–29)
+
+Port 1 is trunked to the Netgate SG1100 carrying all VLANs.
