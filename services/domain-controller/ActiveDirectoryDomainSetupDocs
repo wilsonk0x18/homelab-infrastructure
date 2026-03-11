@@ -1,0 +1,291 @@
+Windows Server 2022 Domain Controller Deployment - Kyle Wilson
+
+Lab Setup: Windows Server 2022 Domain Controller on Proxmox
+
+
+Domain Controller Setup
+1. Create Proxmox VM
+2. Attach Windows Server ISO and VirtIO drivers
+3. Install Windows Server
+4. Configure static IP
+5. Rename server
+6. Install Active Directory Domain Services
+7. Promote server to domain controller
+8. Verify domain services
+
+
+Client Domain Join
+1. Configure DNS on client
+2. Join domain
+3. Log in with domain account
+
+
+------------------------------------------------------------
+
+PROXMOX VM CONFIGURATION
+
+Create a new VM in Proxmox.
+
+Select:
+
+	BIOS:
+		OVMF (UEFI)
+
+	Machine:
+		q35
+
+Attach installation media:
+
+	IDE0:
+		Windows Server 2022 ISO
+
+	IDE1:
+		VirtIO Driver ISO
+		(Version 0.1.229 or latest stable)
+
+Remove default disk and create new disk:
+
+	Bus / Device:
+		SCSI
+
+	Disk Size:
+		80 GB (or larger)
+
+Ensure the following settings:
+
+	SCSI Controller:
+		VirtIO SCSI single
+
+	TPM:
+		Disabled
+
+	Secure Boot:
+		Disabled
+		("pre-enrolled keys" option off)
+
+
+------------------------------------------------------------
+
+INSTALL WINDOWS SERVER
+
+Boot the VM into the Windows installer.
+
+During installation you will see:
+
+	"Where do you want to install Windows?"
+
+No disks will appear initially.
+
+Click:
+
+	Load Driver
+
+Navigate to:
+
+	vioscsi → w10 → amd64
+
+Load the driver.
+
+The disk will now appear.
+
+Install Windows Server normally.
+
+
+------------------------------------------------------------
+
+CONFIGURE STATIC IP
+
+Open:
+
+	Network & Internet Settings
+
+Edit Ethernet adapter IPv4 configuration.
+
+Set the following:
+
+	IP Address:
+		192.168.X.X
+
+	Subnet:
+		255.255.255.0
+
+	Gateway:
+		192.168.X.X
+
+	DNS Server:
+		192.168.X.X
+
+NOTE:
+	The DNS server must point to the domain controller for Active Directory.
+
+
+------------------------------------------------------------
+
+RENAME SERVER
+
+Open:
+
+	Server Manager → Local Server
+
+Click:
+
+	Computer Name
+
+Rename the server to:
+
+	DC1
+
+Reboot the server.
+
+
+------------------------------------------------------------
+
+INSTALL ACTIVE DIRECTORY DOMAIN SERVICES
+
+Open:
+
+	Server Manager
+
+Navigate to:
+
+	Manage → Add Roles and Features
+
+Select:
+
+	Active Directory Domain Services
+
+DNS Server will be selected automatically.
+
+Complete the installation wizard.
+
+
+------------------------------------------------------------
+
+PROMOTE SERVER TO DOMAIN CONTROLLER
+
+In Server Manager click the notification flag.
+
+Select:
+
+	Promote this server to a domain controller
+
+Choose:
+
+	Add a new forest
+
+Set domain name:
+
+	lab.local
+
+Create a DSRM password.
+
+Ignore DNS delegation warnings (normal for lab setups).
+
+Finish the wizard.
+
+The server will reboot automatically.
+
+
+------------------------------------------------------------
+
+VERIFY DOMAIN INSTALLATION
+
+After reboot log in as:
+
+	LAB\Administrator
+
+Verify the following:
+
+DNS Zone exists:
+
+	lab.local
+
+NetBIOS domain:
+
+	LAB
+
+Verify domain shares exist:
+
+	\\DC1\SYSVOL
+	\\DC1\NETLOGON
+
+
+------------------------------------------------------------
+
+CLIENT DOMAIN JOIN
+
+On the Windows client machine.
+
+
+------------------------------------------------------------
+
+SET CLIENT DNS
+
+Open:
+
+	Network & Internet Settings
+
+Navigate to:
+
+	Adapter Properties → IPv4
+
+Set DNS server to:
+
+	192.168.X.X
+
+Reboot the client machine.
+
+
+------------------------------------------------------------
+
+JOIN DOMAIN
+
+Right-click:
+
+	This PC → Properties
+
+Select:
+
+	Rename this PC (Advanced)
+
+Click:
+
+	Change
+
+Select:
+
+	Domain
+
+Enter domain name:
+
+	lab.local
+
+Enter credentials when prompted:
+
+	Username:
+		LAB\Administrator
+
+	Password:
+		<domain admin password>
+
+Reboot the client machine.
+
+
+------------------------------------------------------------
+
+LOGIN WITH DOMAIN ACCOUNT
+
+At the login screen select:
+
+	Other User
+
+Enter credentials:
+
+	Username:
+		LAB\yourusername
+
+	Password:
+		********
+
+
+You are now authenticated through the domain controller.
