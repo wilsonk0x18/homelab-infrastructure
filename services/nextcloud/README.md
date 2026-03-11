@@ -100,7 +100,7 @@ The instance is made remotely accessible using **Tunnelto**, which creates a sec
 
 The full installation and configuration process is documented here:
 
-➡ **[Nextcloud Setup Guide](nextcloud-setup.md)**
+➡ **[Nextcloud Setup Guide](NextcloudDocs)**
 
 This guide covers:
 
