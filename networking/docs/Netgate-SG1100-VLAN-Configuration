@@ -1,0 +1,330 @@
+Netgate SG1100 VLAN Configuration - Kyle Wilson
+
+Lab Setup: Netgate SG1100 + Juniper EX2200 Switch
+
+
+Router Configuration Overview
+1. Connect to SG1100 web interface
+2. Assign WAN configuration
+3. Create VLAN interfaces
+4. Assign VLANs to router interfaces
+5. Configure VLAN gateway addresses
+6. Enable DHCP for each VLAN
+7. Create firewall rules
+8. Connect trunk port to EX2200
+9. Verify VLAN connectivity
+
+
+------------------------------------------------------------
+
+CONNECT TO SG1100
+
+Plug computer directly into the LAN port of the SG1100.
+
+Open a browser.
+
+Navigate to:
+
+	https://192.168.1.1
+
+Login using default credentials.
+
+	username: admin
+	password: pfsense
+
+
+------------------------------------------------------------
+
+INITIAL SETUP WIZARD
+
+Follow the pfSense setup wizard.
+
+Configure:
+
+	WAN Interface
+		Set according to your upstream router
+
+	LAN Interface
+		Default network: 192.168.X.1/24
+
+
+------------------------------------------------------------
+
+CREATE VLANS
+
+Navigate to:
+
+	Interfaces → Assignments → VLANs
+
+Click:
+
+	Add
+
+
+Create VLAN 10
+
+	Parent Interface:
+		LAN
+
+	VLAN Tag:
+		10
+
+	Description:
+		PRIVATE
+
+
+Click:
+
+	Save
+
+
+Repeat for VLAN 20
+
+	VLAN Tag:
+		20
+
+	Description:
+		PUBLIC
+
+
+Repeat for VLAN 30
+
+	VLAN Tag:
+		30
+
+	Description:
+		GUEST
+
+
+------------------------------------------------------------
+
+ASSIGN VLAN INTERFACES
+
+Navigate to:
+
+	Interfaces → Assignments
+
+Add each VLAN interface.
+
+Click:
+
+	Add
+
+
+Assign interfaces:
+
+	VLAN 10 → OPT1
+	VLAN 20 → OPT2
+	VLAN 30 → OPT3
+
+
+Click:
+
+	Save
+
+
+------------------------------------------------------------
+
+CONFIGURE VLAN GATEWAYS
+
+Click interface:
+
+	OPT1
+
+Enable interface.
+
+Rename:
+
+	PRIVATE
+
+Set IPv4 Configuration Type:
+
+	Static IPv4
+
+Set address:
+
+	192.168.X.1 /24
+
+Save.
+
+
+Repeat for VLAN 20
+
+Interface:
+
+	PUBLIC
+
+Address:
+
+	192.168.X.1 /24
+
+
+Repeat for VLAN 30
+
+Interface:
+
+	GUEST
+
+Address:
+
+	192.168.X.1 /24
+
+
+------------------------------------------------------------
+
+ENABLE DHCP SERVERS
+
+Navigate to:
+
+	Services → DHCP Server
+
+
+PRIVATE VLAN
+
+Enable DHCP server.
+
+Range:
+
+	192.168.X.50
+	to
+	192.168.X.200
+
+
+PUBLIC VLAN
+
+Enable DHCP server.
+
+Range:
+
+	192.168.X.50
+	to
+	192.168.X.200
+
+
+GUEST VLAN
+
+Enable DHCP server.
+
+Range:
+
+	192.168.X.50
+	to
+	192.168.X.200
+
+
+------------------------------------------------------------
+
+CREATE FIREWALL RULES
+
+Navigate to:
+
+	Firewall → Rules
+
+
+PRIVATE VLAN
+
+Allow LAN access.
+
+Add rule:
+
+	Action:
+		Pass
+
+	Protocol:
+		Any
+
+	Source:
+		PRIVATE net
+
+	Destination:
+		Any
+
+
+PUBLIC VLAN
+
+Allow internet only.
+
+Add rule:
+
+	Action:
+		Pass
+
+	Source:
+		PUBLIC net
+
+	Destination:
+		WAN net
+
+
+GUEST VLAN
+
+Restrict to internet only.
+
+Add rule:
+
+	Action:
+		Pass
+
+	Source:
+		GUEST net
+
+	Destination:
+		WAN net
+
+
+------------------------------------------------------------
+
+CONNECT SWITCH TRUNK
+
+Connect:
+
+	SG1100 LAN port
+
+to
+
+	EX2200 Port 1
+
+
+Port 1 on the EX2200 must be configured as a trunk carrying:
+
+	VLAN 10
+	VLAN 20
+	VLAN 30
+
+
+------------------------------------------------------------
+
+VERIFY VLAN CONNECTIVITY
+
+Connect a device to each switch VLAN port.
+
+Expected DHCP addresses:
+
+	Private ports (12-17)
+		192.168.X.x
+
+	Public ports (18-23)
+		192.168.X.x
+
+	Guest ports (24-29)
+		192.168.X.x
+
+
+Test connectivity.
+
+	ping 192.168.X.1
+	ping 192.168.X.1
+	ping 192.168.X.1
+
+
+------------------------------------------------------------
+
+DONE
+
+Your network now contains three segmented VLANs:
+
+	VLAN 10 → Private Network
+	VLAN 20 → Public Network
+	VLAN 30 → Guest Network
+
+Traffic is routed by the Netgate SG1100 and switched by the Juniper EX2200.
