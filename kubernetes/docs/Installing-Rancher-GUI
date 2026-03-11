@@ -35,13 +35,13 @@ Add jetstack and update repo:
 Install rancher with helm:
 	helm install rancher rancher-stable/rancher \
 		--namespace cattle-system \
-		--set hostname=192.168.20.50.sslip.io \
+		--set hostname=192.168.X.X.sslip.io \
 		--set bootstrapPassword=admin
 
 Wait for finish install, you can view progress with:
 	kubectl -n cattle-system rollout status deploy/rancher
 
-To access web UI you may need to mess with DNS setting to be able to resolve 192.168.20.50.sslip.io but instead you could use nodeport for easy local access between browser and rancher service	
+To access web UI you may need to mess with DNS setting to be able to resolve 192.168.X.X.X.X but instead you could use nodeport for easy local access between browser and rancher service	
 	Nodeport install:
 		kubectl -n cattle-system patch svc rancher \
 			-p '{"spec": {"type": "NodePort"}}'
@@ -50,7 +50,7 @@ To access web UI you may need to mess with DNS setting to be able to resolve 192
 		kubectl get svc -n cattle-system rancher
 
 	Using listed 30.... port access like so:
-		https://192.168.20.50:30....
+		https://192.168.X.X:30....
 
 
 *Enter the original bootstrap password and create an account with the new password.
