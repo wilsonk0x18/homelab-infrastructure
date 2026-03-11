@@ -1,0 +1,383 @@
+Jellyfin + Sonarr + Radarr + Jackett + qBittorrent Media Stack - Kyle Wilson
+
+Legal Notice:
+	This lab is intended for educational and personal media management purposes only.
+	Only download and stream media that you legally own or have rights to access.
+	Examples include public-domain media such as Nosferatu (1922).
+	Do not use this system to download copyrighted content without permission.
+
+
+Lab Setup: Ubuntu Server (22.04 / 24.04)
+
+Media Stack Components
+1. Jellyfin (media server)
+2. Sonarr (TV automation)
+3. Radarr (movie automation)
+4. Jackett (indexer aggregator)
+5. qBittorrent (torrent client)
+6. Gluetun (VPN container)
+7. FlareSolverr (Cloudflare bypass helper)
+8. Optional Tailscale for secure remote access
+
+
+------------------------------------------------------------
+
+SYSTEM SETUP
+
+Install base tools:
+
+	sudo apt update
+	sudo apt -y upgrade
+
+	sudo apt -y install ca-certificates curl gnupg lsb-release ufw
+
+
+------------------------------------------------------------
+
+INSTALL DOCKER + COMPOSE
+
+Create keyring directory:
+
+	sudo install -m 0755 -d /etc/apt/keyrings
+
+Add Docker repository key:
+
+	curl -fsSL https://download.docker.com/linux/ubuntu/gpg \
+	| sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg
+
+Add Docker repository:
+
+	echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable" \
+	| sudo tee /etc/apt/sources.list.d/docker.list >/dev/null
+
+Install Docker:
+
+	sudo apt update
+	sudo apt -y install docker-ce docker-ce-cli containerd.io docker-compose-plugin
+
+Add current user to docker group:
+
+	sudo usermod -aG docker $USER
+
+Apply group change:
+
+	newgrp docker
+
+
+------------------------------------------------------------
+
+CONFIGURE FIREWALL (LAN ONLY)
+
+	sudo ufw default deny incoming
+	sudo ufw default allow outgoing
+
+	sudo ufw allow OpenSSH
+	sudo ufw allow 8096/tcp
+	sudo ufw allow 8080/tcp
+	sudo ufw allow 7878/tcp
+	sudo ufw allow 8989/tcp
+	sudo ufw allow 9117/tcp
+	sudo ufw allow 8191/tcp
+
+Enable firewall:
+
+	sudo ufw enable
+
+
+------------------------------------------------------------
+
+CREATE MEDIA FOLDERS
+
+	mkdir -p ~/media/{movies,tv}
+
+	mkdir -p ~/downloads/{incomplete,completed/{movies,tv}}
+
+	mkdir -p ~/stacks/mediaserver/{jellyfin,sonarr,radarr,jackett,qbittorrent,gluetun,flaresolverr}
+
+	cd ~/stacks/mediaserver
+
+
+------------------------------------------------------------
+
+CREATE ENVIRONMENT FILE
+
+	echo "PUID=$(id -u)" > .env
+	echo "PGID=$(id -g)" >> .env
+	echo "TZ=$(cat /etc/timezone 2>/dev/null || echo 'Etc/UTC')" >> .env
+
+
+------------------------------------------------------------
+
+CREATE DOCKER COMPOSE FILE
+
+Create file:
+
+	nano docker-compose.yaml
+
+Paste the following configuration.
+
+
+version: "3.8"
+
+services:
+
+# VPN GATEWAY
+gluetun:
+	image: qmcgaw/gluetun
+	container_name: gluetun
+	cap_add: [ NET_ADMIN ]
+	environment:
+		- VPN_SERVICE_PROVIDER=protonvpn
+		- OPENVPN_USER=<YOUR_OPENVPN_USERNAME>+pmp
+		- OPENVPN_PASSWORD=<YOUR_OPENVPN_PASSWORD>
+		- SERVER_COUNTRIES=United States
+		- SERVER_FEATURES=port_forwarding
+		- VPN_PORT_FORWARDING=on
+		- VPN_PORT_FORWARDING_PROVIDER=protonvpn
+		- TZ=${TZ}
+	volumes:
+		- ./gluetun:/gluetun
+		- ./gluetun/tmp:/tmp/gluetun
+	ports:
+		- "8080:8080"
+	restart: unless-stopped
+
+
+# TORRENT CLIENT
+qbittorrent:
+	image: lscr.io/linuxserver/qbittorrent:latest
+	container_name: qbittorrent
+	network_mode: "service:gluetun"
+	depends_on: [ gluetun ]
+	environment:
+		- PUID=${PUID}
+		- PGID=${PGID}
+		- TZ=${TZ}
+		- WEBUI_PORT=8080
+	volumes:
+		- ./qbittorrent:/config
+		- ${HOME}/downloads:/downloads
+	restart: unless-stopped
+
+
+# INDEXER
+jackett:
+	image: lscr.io/linuxserver/jackett:latest
+	container_name: jackett
+	environment: [ PUID=${PUID}, PGID=${PGID}, TZ=${TZ} ]
+	volumes:
+		- ./jackett:/config
+	ports:
+		- "9117:9117"
+	restart: unless-stopped
+
+
+# FLARESOLVERR
+flaresolverr:
+	image: flaresolverr/flaresolverr:latest
+	container_name: flaresolverr
+	environment: [ LOG_LEVEL=info ]
+	ports:
+		- "8191:8191"
+	restart: unless-stopped
+
+
+# SONARR
+sonarr:
+	image: lscr.io/linuxserver/sonarr:latest
+	container_name: sonarr
+	environment: [ PUID=${PUID}, PGID=${PGID}, TZ=${TZ} ]
+	volumes:
+		- ./sonarr:/config
+		- ${HOME}/downloads:/downloads
+		- ${HOME}/media/tv:/media/tv
+	ports:
+		- "8989:8989"
+	restart: unless-stopped
+
+
+# RADARR
+radarr:
+	image: lscr.io/linuxserver/radarr:latest
+	container_name: radarr
+	environment: [ PUID=${PUID}, PGID=${PGID}, TZ=${TZ} ]
+	volumes:
+		- ./radarr:/config
+		- ${HOME}/downloads:/downloads
+		- ${HOME}/media/movies:/media/movies
+	ports:
+		- "7878:7878"
+	restart: unless-stopped
+
+
+# JELLYFIN
+jellyfin:
+	image: jellyfin/jellyfin:latest
+	container_name: jellyfin
+	environment: [ TZ=${TZ} ]
+	volumes:
+		- ./jellyfin:/config
+		- ${HOME}/media:/media
+	ports:
+		- "8096:8096"
+	restart: unless-stopped
+
+
+------------------------------------------------------------
+
+START THE MEDIA STACK
+
+	docker compose up -d
+
+Verify containers:
+
+	docker compose ps
+
+
+------------------------------------------------------------
+
+QBittorrent FIRST RUN
+
+Get generated admin password:
+
+	docker logs qbittorrent | grep -i password
+
+Login to:
+
+	http://<server-ip>:8080
+
+Username:
+
+	admin
+
+
+------------------------------------------------------------
+
+SET DOWNLOAD PATHS
+
+Default save path:
+
+	/downloads/completed
+
+Incomplete path:
+
+	/downloads/incomplete
+
+Create categories:
+
+	tv
+	movies
+
+
+------------------------------------------------------------
+
+CHECK VPN CONNECTION
+
+Get forwarded port:
+
+	docker exec -it gluetun cat /tmp/gluetun/forwarded_port
+
+Verify public IP:
+
+	docker exec -it qbittorrent curl -s https://ipinfo.io/ip
+
+
+------------------------------------------------------------
+
+JACKETT SETUP
+
+Open:
+
+	http://<server-ip>:9117
+
+Set FlareSolverr URL:
+
+	http://flaresolverr:8191
+
+Add indexers.
+
+Copy Torznab feed URLs and API key.
+
+
+------------------------------------------------------------
+
+SONARR SETUP
+
+Open:
+
+	http://<server-ip>:8989
+
+Add root folder:
+
+	/media/tv
+
+Add download client:
+
+	qBittorrent
+	host: gluetun
+	port: 8080
+	category: tv
+
+Add Torznab indexers from Jackett.
+
+
+------------------------------------------------------------
+
+RADARR SETUP
+
+Open:
+
+	http://<server-ip>:7878
+
+Add root folder:
+
+	/media/movies
+
+Add download client:
+
+	qBittorrent
+	host: gluetun
+	port: 8080
+	category: movies
+
+
+------------------------------------------------------------
+
+JELLYFIN SETUP
+
+Open:
+
+	http://<server-ip>:8096
+
+Add libraries:
+
+	Movies → /media/movies
+	TV Shows → /media/tv
+
+Enable real-time monitoring.
+
+
+------------------------------------------------------------
+
+OPTIONAL REMOTE ACCESS (TAILSCALE)
+
+	curl -fsSL https://tailscale.com/install.sh | sh
+
+	sudo tailscale up
+
+Access Jellyfin via:
+
+	http://<tailscale-ip>:8096
+
+
+------------------------------------------------------------
+
+VERIFY PIPELINE
+
+1. Add a public-domain movie in Radarr (example: Nosferatu 1922).
+2. qBittorrent downloads file.
+3. Radarr imports and renames media.
+4. Jellyfin automatically adds the title.
+
+
+Done — fully automated media server stack running.
