@@ -1,0 +1,213 @@
+Monitoring Proxmox with Prometheus + Grafana - Kyle Wilson 1/2/26
+
+Monitoring VM
+1. Create Ubuntu Server VM on Proxmox (2GB+ RAM recommended)
+2. Update system
+3. Install Prometheus
+4. Start and enable Prometheus service
+5. Verify Prometheus is running
+6. Install Grafana
+7. Start and enable Grafana service
+8. Verify Grafana web interface
+
+Proxmox Host
+1. Install Node Exporter
+2. Verify Node Exporter service
+
+Prometheus Configuration
+1. Edit prometheus.yml
+2. Add scrape target for Proxmox host
+3. Restart Prometheus
+4. Verify target appears in Prometheus
+
+Grafana Configuration
+1. Add Prometheus data source
+2. Import dashboard
+3. (Optional) Enable anonymous access
+
+
+------------------------------------------------------------
+
+MONITORING VM SETUP (Ubuntu Server)
+
+Always:
+	sudo apt update
+	sudo apt upgrade -y
+
+
+------------------------------------------------------------
+
+INSTALL PROMETHEUS
+
+Install Prometheus:
+	sudo apt install prometheus -y
+
+Enable and start Prometheus:
+	sudo systemctl enable prometheus
+	sudo systemctl start prometheus
+
+Verify:
+	sudo systemctl status prometheus
+
+Should show: active (running)
+
+Test via browser:
+	http://<monitoring-vm-ip>:9090
+
+
+------------------------------------------------------------
+
+INSTALL GRAFANA
+
+Install dependencies:
+	sudo apt install -y apt-transport-https software-properties-common
+
+Create keyring directory:
+	sudo mkdir -p /etc/apt/keyrings/
+
+Add Grafana repository key:
+	wget -q -O - https://packages.grafana.com/gpg.key | sudo gpg --dearmor -o /etc/apt/keyrings/grafana.gpg
+
+Add repository:
+	echo "deb [signed-by=/etc/apt/keyrings/grafana.gpg] https://packages.grafana.com/oss/deb stable main" | sudo tee /etc/apt/sources.list.d/grafana.list
+
+Update packages:
+	sudo apt update
+
+Install Grafana:
+	sudo apt install grafana -y
+
+Enable and start Grafana:
+	sudo systemctl enable --now grafana-server
+
+Test via browser:
+	http://<monitoring-vm-ip>:3000
+
+Default credentials:
+	admin / admin
+
+
+------------------------------------------------------------
+
+NODE EXPORTER ON PROXMOX HOST
+
+SSH into the host you want to monitor.
+
+Update system:
+	apt update
+
+Install Node Exporter:
+	apt install prometheus-node-exporter -y
+
+Node Exporter runs automatically on port 9100.
+
+Verify:
+	sudo systemctl status prometheus-node-exporter
+
+
+------------------------------------------------------------
+
+CONFIGURE PROMETHEUS SCRAPE TARGET
+
+Edit Prometheus configuration file:
+	sudo nano /etc/prometheus/prometheus.yml
+
+Replace the scrape_configs section with:
+
+	scrape_configs:
+
+	  - job_name: 'prometheus'
+	    static_configs:
+	      - targets: ['localhost:9090']
+
+	  - job_name: 'Anything You’d Like'
+	    static_configs:
+	      - targets: ['Host IP']
+	        labels:
+	          nodename: 'Anything You’d Like'
+
+Replace "Host IP" with the Proxmox host LAN IP.
+
+Restart Prometheus:
+	sudo systemctl restart prometheus
+
+Verify the host is visible:
+	http://<monitoring-vm-ip>:9090/targets
+
+
+------------------------------------------------------------
+
+CONFIGURE GRAFANA DATA SOURCE
+
+Open Grafana:
+	http://<monitoring-vm-ip>:3000
+
+Navigate to:
+	Connections → Add Data Source → Prometheus
+
+Set URL:
+	http://localhost:9090
+
+Click:
+	Save & Test
+
+
+------------------------------------------------------------
+
+IMPORT READY-MADE DASHBOARD
+
+Navigate to:
+	Dashboards → New → Import
+
+Enter dashboard ID:
+	1860
+
+Click:
+	Load
+
+Choose your Prometheus data source.
+
+Click:
+	Import
+
+You will now see dashboards showing:
+	CPU usage
+	Memory usage
+	Network traffic
+	Disk metrics
+
+Example metric query:
+	(irate(node_cpu_seconds_total{mode="idle"}[5m])) * 100
+
+
+------------------------------------------------------------
+
+OPTIONAL: ENABLE ANONYMOUS GRAFANA ACCESS (LOCAL ONLY)
+
+Find the Grafana config file:
+	sudo journalctl -u grafana-server -b | grep -i "Config" -m1
+
+Edit the configuration file:
+	sudo nano <grafana-config-file>
+
+Uncomment and set:
+
+	[auth.anonymous]
+	enabled = true
+	org_name = Main Org.
+	org_role = Viewer
+
+	[auth]
+	disable_login_form = true
+
+Restart Grafana:
+	sudo systemctl restart grafana-server
+
+
+Now Grafana can be accessed directly via:
+	http://<monitoring-vm-ip>:3000
+
+
+------------------------------------------------------------
+
+Done — Prometheus is now collecting metrics and Grafana is visualizing them for your Proxmox host.
