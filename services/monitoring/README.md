@@ -83,7 +83,7 @@ Grafana dashboards provide a real-time visualization of these metrics. :contentR
 
 ## Setup Documentation
 
-➡ **[Prometheus + Grafana Setup Guide](prometheus-grafana.md)**
+➡ **[Prometheus + Grafana Setup Guide](Grafana+PrometheusDocs)**
 
 The full guide includes:
 
