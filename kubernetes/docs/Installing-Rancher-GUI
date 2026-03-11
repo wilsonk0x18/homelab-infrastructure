@@ -1,0 +1,56 @@
+Lab setup: Single-server K3s cluster Rancher install on Ubuntu 24.04 - Kyle Wilson 3/8/26
+
+1. Install Helm
+2. Add Rancher repo
+3. Add Jetstack repo
+4. Install cert-manager
+5. Install Rancher
+6. Wait for rollout
+7. Access via hostname or change service to NodePort
+8. Retrieve node token
+
+RANCHER ON CONTROLLER (For WebUI; not needed)
+
+Prereq: install helm 3 and check version after installation:
+	curl https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
+	helm version
+
+Add rancher stable to repo using helm and update repo:
+	helm repo add rancher-stable https://releases.rancher.com/server-charts/stable
+	helm repo update
+
+Create namespace:
+	kubectl create namespace cattle-system
+
+Add jetstack and update repo:
+	Install:	
+		helm install cert-manager jetstack/cert-manager \
+			--namespace cert-manager \
+			--create-namespace \
+			--set crds.enabled=true
+
+	Verify:
+		kubectl get pods --namespace cert-manager
+
+Install rancher with helm:
+	helm install rancher rancher-stable/rancher \
+		--namespace cattle-system \
+		--set hostname=192.168.20.50.sslip.io \
+		--set bootstrapPassword=admin
+
+Wait for finish install, you can view progress with:
+	kubectl -n cattle-system rollout status deploy/rancher
+
+To access web UI you may need to mess with DNS setting to be able to resolve 192.168.20.50.sslip.io but instead you could use nodeport for easy local access between browser and rancher service	
+	Nodeport install:
+		kubectl -n cattle-system patch svc rancher \
+			-p '{"spec": {"type": "NodePort"}}'
+	
+	Check ports:
+		kubectl get svc -n cattle-system rancher
+
+	Using listed 30.... port access like so:
+		https://192.168.20.50:30....
+
+
+*Enter the original bootstrap password and create an account with the new password.
