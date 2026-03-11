@@ -1,0 +1,222 @@
+Nextcloud VM Setup with Tunnelto - Kyle Wilson
+
+Lab Setup: Ubuntu 22.04 Server VM on Proxmox
+
+
+Nextcloud Server
+1. Create Proxmox VM
+2. Configure static network during Ubuntu install
+3. Install Nextcloud snap package
+4. Complete Nextcloud web setup
+5. Install Tunnelto
+6. Configure Tunnelto authentication
+7. Test public tunnel
+8. Create systemd service for persistent tunnel
+9. Add tunnel domain to Nextcloud trusted domains
+
+
+------------------------------------------------------------
+
+PROXMOX VM SPECIFICATIONS
+
+OS:
+	Ubuntu Server 22.04
+
+RAM:
+	4 GB
+
+CPU:
+	2 Cores
+	2 Sockets
+
+Disk:
+	1 TB
+
+Network:
+	VMBRX (Public VLAN)
+
+
+------------------------------------------------------------
+
+NETWORK CONFIGURATION (DURING UBUNTU INSTALL)
+
+Switch network configuration from automatic to manual.
+
+Set the following:
+
+	Subnet: 192.168.X.0/24
+	IP Address: 192.168.X.X
+	Gateway: 192.168.X.X
+
+
+------------------------------------------------------------
+
+INSTALL NEXTCLOUD SNAP PACKAGE
+
+During the Ubuntu installer Snap Packages screen:
+
+Install:
+
+	Nextcloud (latest stable snapshot)
+
+Optional:
+
+	OpenSSH Server (for remote access)
+
+Continue installation and reboot when prompted.
+
+
+------------------------------------------------------------
+
+NEXTCLOUD WEB SETUP
+
+Once installation is complete and you are logged into the VM:
+
+Open a browser from another device.
+
+Navigate to:
+
+	http://192.168.X.X
+
+Complete the Nextcloud admin account setup.
+
+Nextcloud will now be accessible on the local network.
+
+
+------------------------------------------------------------
+
+INSTALL TUNNELTO
+
+	curl -sL https://tunnelto.dev/install.sh | sh
+
+
+------------------------------------------------------------
+
+ADD TUNNELTO TO PATH
+
+	nano ~/.bashrc
+
+Add the following lines:
+
+	export TUNNELTO_INSTALL="$HOME/.tunnelto"
+	export PATH="$TUNNELTO_INSTALL/bin:$PATH"
+
+Apply the changes:
+
+	source ~/.bashrc
+
+
+------------------------------------------------------------
+
+AUTHENTICATE TUNNELTO
+
+	tunnelto set-auth --key XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+
+
+------------------------------------------------------------
+
+TEST TUNNELTO CONNECTION
+
+	tunnelto --port 80 --subdomain X
+
+Your Nextcloud instance will now be reachable at:
+
+	https://X.tunn.dev
+
+***NOTE THIS WILL BE EXPOSED TO THE PUBLIC SECURITY WILL BE YOUR JOB
+
+------------------------------------------------------------
+
+CREATE PERSISTENT TUNNEL SERVICE
+
+Create systemd service file:
+
+	sudo nano /etc/systemd/system/tunnelto.service
+
+Paste the following configuration:
+
+
+[Unit]
+Description=Tunnelto service
+After=network.target
+
+[Service]
+ExecStart=/home/X/.tunnelto/bin/tunnelto --port 80 --subdomain X
+Restart=always
+User=X
+Environment=PATH=/usr/bin:/bin:/usr/local/bin
+WorkingDirectory=/home/X
+
+[Install]
+WantedBy=multi-user.target
+
+
+------------------------------------------------------------
+
+ENABLE TUNNEL SERVICE
+
+Reload systemd:
+
+	sudo systemctl daemon-reexec
+	sudo systemctl daemon-reload
+
+Enable service:
+
+	sudo systemctl enable tunnelto.service
+
+Start service:
+
+	sudo systemctl start tunnelto.service
+
+
+------------------------------------------------------------
+
+CHECK SERVICE STATUS
+
+	sudo systemctl status tunnelto.service
+
+
+------------------------------------------------------------
+
+ADD TUNNEL DOMAIN TO NEXTCLOUD TRUSTED DOMAINS
+
+Edit Nextcloud config:
+
+	sudo nano /var/snap/nextcloud/current/nextcloud/config/config.php
+
+Add your tunnel domain to the trusted_domains array:
+
+
+'trusted_domains' =>
+array (
+	0 => 'localhost',
+	1 => 'X.tunn.dev',
+),
+
+
+Save and exit:
+
+	Ctrl + O
+	Ctrl + X
+
+
+------------------------------------------------------------
+
+OPTIONAL MOBILE SUPPORT SETTINGS
+
+Inside the $CONFIG array add:
+
+	'overwrite.cli.url' => 'https://X.tunnelto.dev',
+	'overwriteprotocol' => 'https',
+	'trusted_proxies' => ['127.0.0.1'],
+
+
+------------------------------------------------------------
+
+VERIFY NEXTCLOUD ACCESS
+
+Open in browser:
+
+	https://X.tunn.dev
+
+Your Nextcloud instance is now accessible remotely through Tunnelto.
