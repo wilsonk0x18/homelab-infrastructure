@@ -97,17 +97,17 @@ The homelab is segmented into separate VLANs to isolate systems by purpose.
   </tr>
   <tr>
     <td><b>VLAN 20</b></td>
-    <td><code>192.168.20.0/24</code></td>
+    <td><code>192.168.X.0/24</code></td>
     <td>Private infrastructure and internal services</td>
   </tr>
   <tr>
     <td><b>VLAN 30</b></td>
-    <td><code>192.168.30.0/24</code></td>
+    <td><code>192.168.X.0/24</code></td>
     <td>Guest devices and isolated wireless access</td>
   </tr>
   <tr>
     <td><b>VLAN 40</b></td>
-    <td><code>192.168.40.0/24</code></td>
+    <td><code>192.168.X.0/24</code></td>
     <td>Public-facing/self-hosted services</td>
   </tr>
 </table>
