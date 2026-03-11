@@ -1,0 +1,431 @@
+Ollama + OpenWebUI AI Server Setup - Kyle Wilson
+
+Legal Notice:
+	This lab guide is intended for educational and personal AI experimentation.
+	Only run models and datasets that you are legally permitted to use.
+	Do not use this system to host or distribute proprietary models without permission.
+
+
+Lab Setup: Ubuntu Server 24.04 Bare Metal AI Workstation
+
+
+AI Server Components
+1. NVIDIA RTX 2080 Super GPU
+2. Ollama (LLM inference engine)
+3. Open WebUI (browser interface)
+4. Qwen 2.5 8B model
+5. Docker containers
+6. Tailscale remote access
+7. Automatic idle suspend
+8. Wake-on-LAN support
+
+
+------------------------------------------------------------
+
+HARDWARE PLATFORM
+
+GPU:
+	NVIDIA RTX 2080 Super
+
+Deployment Type:
+	Bare metal Ubuntu server
+
+Access:
+	LAN + Tailscale
+
+Power Management:
+	Suspend after 15 minutes of inactivity
+	Wake-on-LAN enabled
+
+
+------------------------------------------------------------
+
+OPERATING SYSTEM SETUP
+
+Install Ubuntu Server 24.04 normally.
+
+After installation update the system:
+
+	sudo apt update
+	sudo apt upgrade -y
+
+
+------------------------------------------------------------
+
+VERIFY GPU DETECTION
+
+Check that the system detects the NVIDIA GPU:
+
+	lspci | grep -i nvidia
+
+You should see the RTX 2080 Super listed.
+
+
+------------------------------------------------------------
+
+INSTALL NVIDIA DRIVERS
+
+Install recommended drivers automatically:
+
+	sudo ubuntu-drivers autoinstall
+
+Reboot the system:
+
+	sudo reboot
+
+
+------------------------------------------------------------
+
+VERIFY GPU DRIVER
+
+After reboot run:
+
+	nvidia-smi
+
+Expected output should display:
+
+	GPU name
+	driver version
+	memory usage
+
+
+------------------------------------------------------------
+
+INSTALL OLLAMA
+
+Install Ollama using the official installer:
+
+	curl -fsSL https://ollama.com/install.sh | sh
+
+Verify installation:
+
+	ollama --version
+
+
+------------------------------------------------------------
+
+ENABLE OLLAMA SERVICE
+
+Enable the Ollama system service:
+
+	sudo systemctl enable ollama
+	sudo systemctl start ollama
+
+Verify service status:
+
+	sudo systemctl status ollama
+
+
+------------------------------------------------------------
+
+TEST OLLAMA API
+
+Ollama exposes an API on port 11434.
+
+Test locally:
+
+	curl http://localhost:11434
+
+You should receive a response confirming the server is running.
+
+
+------------------------------------------------------------
+
+DOWNLOAD AN 8B MODEL
+
+Pull the Qwen 2.5 8B model:
+
+	ollama pull qwen2.5:8b
+
+Test the model:
+
+	ollama run qwen2.5:8b
+
+You can now interact with the model via the terminal.
+
+
+------------------------------------------------------------
+
+INSTALL DOCKER
+
+Open WebUI will run inside Docker.
+
+Install Docker:
+
+	sudo apt install docker.io docker-compose-plugin -y
+
+Enable Docker service:
+
+	sudo systemctl enable docker
+	sudo systemctl start docker
+
+Add user to Docker group:
+
+	sudo usermod -aG docker $USER
+
+Apply group changes:
+
+	newgrp docker
+
+
+------------------------------------------------------------
+
+VERIFY DOCKER INSTALLATION
+
+Run the Docker test container:
+
+	docker run hello-world
+
+
+------------------------------------------------------------
+
+INSTALL OPEN WEBUI
+
+Create WebUI directory:
+
+	mkdir ~/open-webui
+	cd ~/open-webui
+
+
+------------------------------------------------------------
+
+CREATE DOCKER COMPOSE FILE
+
+Create compose configuration:
+
+	nano docker-compose.yaml
+
+Paste the following configuration:
+
+	version: "3"
+
+	services:
+	  open-webui:
+	    image: ghcr.io/open-webui/open-webui:main
+	    container_name: open-webui
+	    ports:
+	      - "3000:8080"
+	    volumes:
+	      - open-webui:/app/backend/data
+	    environment:
+	      - OLLAMA_BASE_URL=http://host.docker.internal:11434
+	    restart: unless-stopped
+
+	volumes:
+	  open-webui:
+
+
+------------------------------------------------------------
+
+START OPEN WEBUI
+
+Start the container:
+
+	docker compose up -d
+
+Verify container status:
+
+	docker compose ps
+
+
+------------------------------------------------------------
+
+ACCESS WEBUI
+
+Open a browser on the LAN:
+
+	http://SERVER-IP:3000
+
+Create a user account in the interface.
+
+Connect the Ollama endpoint:
+
+	http://SERVER-IP:11434
+
+You can now run models directly from the browser.
+
+
+------------------------------------------------------------
+
+INSTALL TAILSCALE
+
+Install Tailscale for remote access:
+
+	curl -fsSL https://tailscale.com/install.sh | sh
+
+Start Tailscale:
+
+	sudo tailscale up
+
+The AI server is now reachable through the Tailscale network.
+
+
+------------------------------------------------------------
+
+ENABLE WAKE-ON-LAN
+
+Install required utility:
+
+	sudo apt install ethtool -y
+
+Check network interface name:
+
+	ip a
+
+Example interface:
+
+	enp3s0
+
+
+------------------------------------------------------------
+
+VERIFY WOL SUPPORT
+
+Check WOL capability:
+
+	sudo ethtool enp3s0
+
+Look for:
+
+	Wake-on: g
+
+
+------------------------------------------------------------
+
+ENABLE WOL
+
+Enable Wake-on-LAN:
+
+	sudo ethtool -s enp3s0 wol g
+
+
+------------------------------------------------------------
+
+MAKE WOL PERSISTENT
+
+Create service:
+
+	sudo nano /etc/systemd/system/wol.service
+
+Paste configuration:
+
+	[Unit]
+	Description=Enable Wake-on-LAN
+
+	[Service]
+	Type=oneshot
+	ExecStart=/sbin/ethtool -s enp3s0 wol g
+
+	[Install]
+	WantedBy=multi-user.target
+
+Enable service:
+
+	sudo systemctl enable wol
+
+
+------------------------------------------------------------
+
+AUTO-SUSPEND WHEN OLLAMA IS IDLE
+
+Create idle monitoring script:
+
+	sudo nano /usr/local/bin/ollama_idle_monitor.sh
+
+Paste the following script:
+
+	#!/bin/bash
+
+	IDLE_LIMIT=900
+	OLLAMA_PORT=11434
+	last_activity=$(date +%s)
+
+	while true
+	do
+	    connections=$(ss -tn state established '( sport = :11434 )' | wc -l)
+
+	    if [ "$connections" -gt 1 ]; then
+	        last_activity=$(date +%s)
+	    fi
+
+	    now=$(date +%s)
+	    idle_time=$((now-last_activity))
+
+	    if [ "$idle_time" -gt "$IDLE_LIMIT" ]; then
+	        systemctl suspend
+	    fi
+
+	    sleep 60
+	done
+
+Make script executable:
+
+	sudo chmod +x /usr/local/bin/ollama_idle_monitor.sh
+
+
+------------------------------------------------------------
+
+CREATE SYSTEMD SERVICE
+
+Create service file:
+
+	sudo nano /etc/systemd/system/ollama-idle.service
+
+Paste configuration:
+
+	[Unit]
+	Description=Ollama Idle Monitor
+
+	[Service]
+	ExecStart=/usr/local/bin/ollama_idle_monitor.sh
+	Restart=always
+
+	[Install]
+	WantedBy=multi-user.target
+
+
+------------------------------------------------------------
+
+ENABLE SERVICE
+
+Reload systemd:
+
+	sudo systemctl daemon-reload
+
+Enable service:
+
+	sudo systemctl enable ollama-idle
+
+Start service:
+
+	sudo systemctl start ollama-idle
+
+
+------------------------------------------------------------
+
+VERIFY SYSTEM
+
+1. Open WebUI and run Qwen 8B
+2. Confirm GPU usage with:
+
+	nvidia-smi
+
+3. Stop using Ollama for 15 minutes
+
+4. System will automatically suspend
+
+5. Wake system remotely via Wake-on-LAN
+
+
+------------------------------------------------------------
+
+RESULT
+
+You now have a fully functional local AI server with:
+
+	Local LLM inference
+	GPU acceleration
+	Web-based interface
+	LAN and Tailscale access
+	Automatic power management
+	Wake-on-LAN remote startup
